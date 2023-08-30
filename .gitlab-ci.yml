@@ -1,0 +1,19 @@
+stages:
+  - package
+building image: 
+    image: maven:latest
+    services:
+      - docker:dind
+    stage: package
+    tags:
+      - Test
+    before_script: 
+      - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    script: 
+      - mvn package 
+      - mkdir pkg
+      - cp target/demo.war pkg/
+    artifacts:
+      paths: 
+        - pkg
+        - target
