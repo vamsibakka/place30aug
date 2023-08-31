@@ -1,7 +1,7 @@
 stages:
   - package
   - build 
-building packages: 
+building package: 
     image: atlassian/maven:latest
     stage: package
     script: 
