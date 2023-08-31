@@ -2,13 +2,9 @@ stages:
   - package
 building image: 
     image: maven:latest
-    services:
-      - docker:dind
     stage: package
     tags:
-      - Test
-    before_script: 
-      - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+      - Test # this is the tag for the instance we connected.
     script: 
       - mvn package 
       - mkdir pkg
