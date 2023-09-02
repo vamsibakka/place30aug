@@ -1,0 +1,46 @@
+stages:
+  - package
+  - build 
+  - deploy
+building package: 
+    image: atlassian/maven:latest
+    stage: package
+    tags:
+      - Test
+    script: 
+      - mvn package 
+      - mkdir pkg
+      - cp target/demo.war pkg/
+    artifacts:
+      paths: 
+        - pkg
+        - target
+image building:
+    image: docker:19.03.12
+    stage: build
+    tags:
+      - Test
+    services:
+       - docker:19.03.12-dind 
+    before_script:
+      - echo "$CI_DEPLOY_PASSWORD" | docker login -u "$CI_DEPLOY_USER" --password-stdin $CI_REGISTRY
+    script:
+      - docker build -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" .
+      - docker build -t "$CI_REGISTRY_IMAGE/$NGINX_PROXY:$CI_COMMIT_REF_SLUG" -f Dockerfile1 .
+      - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+      - docker push "$CI_REGISTRY_IMAGE/$NGINX_PROXY:$CI_COMMIT_REF_SLUG"
+image deploy:
+     image: docker:19.03.12
+     stage: deploy
+     tags: 
+       - Test
+     services:
+        - docker:19.03.12-dind
+     before_script:
+        - echo "$CI_DEPLOY_PASSWORD" | docker login -u "$CI_DEPLOY_USER" --password-stdin $CI_REGISTRY
+     script:
+        - docker ps -aq | xargs -r docker rm -f  
+        - docker pull "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+        - docker container run -d -p 8080:8080 "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" 
+        - docker  pull "$CI_REGISTRY_IMAGE/$NGINX_PROXY:$CI_COMMIT_REF_SLUG"
+        - docker container run -d -p 80:80 "$CI_REGISTRY_IMAGE/$NGINX_PROXY:$CI_COMMIT_REF_SLUG"
